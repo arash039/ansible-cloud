@@ -1,22 +1,3 @@
-# CL Repository
-
-This repository contains an Ansible-based project for deploying and managing a WordPress application with a MariaDB database and a Caddy web server using Docker. The project is structured to facilitate infrastructure automation and configuration management.
-
-## Table of Contents
-- [CL Repository](#cl-repository)
-	- [Table of Contents](#table-of-contents)
-	- [Overview](#overview)
-	- [Prerequisites](#prerequisites)
-	- [Folder Structure](#folder-structure)
-	- [Setup Instructions](#setup-instructions)
-	- [Usage](#usage)
-	- [Roles](#roles)
-		- [Caddy](#caddy)
-		- [Docker](#docker)
-		- [MariaDB](#mariadb)
-		- [WordPress](#wordpress)
-	- [Tear Down](#tear-down)
-
 ## Overview
 This project automates the deployment of a WordPress application using Ansible. It includes roles for setting up:
 - A Caddy web server
