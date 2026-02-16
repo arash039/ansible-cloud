@@ -1,0 +1,7 @@
+- name: Copy Dockerfile and configuration files for MariaDB
+  become: true
+  copy:
+    src: "."
+    dest: "{{ app_path }}/mariadb/"
+    owner: "{{ ansible_user }}"
+    mode: "0644"

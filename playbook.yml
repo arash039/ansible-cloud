@@ -1,0 +1,64 @@
+- hosts: servers
+  tasks:
+    - name: Replace placeholders in inventory
+      replace:
+        path: inventory.ini
+        regexp: 'PLACEHOLDER_HOST'
+        replace: "{{ ansible_host }}"
+      delegate_to: localhost
+
+    - name: Replace placeholders in inventory (user)
+      replace:
+        path: inventory.ini
+        regexp: 'PLACEHOLDER_USER'
+        replace: "{{ ansible_user }}"
+      delegate_to: localhost
+
+    - name: Replace placeholders in inventory (password)
+      replace:
+        path: inventory.ini
+        regexp: 'PLACEHOLDER_PASSWORD'
+        replace: "{{ ansible_password }}"
+      delegate_to: localhost
+
+    - name: Replace placeholders in inventory (become password)
+      replace:
+        path: inventory.ini
+        regexp: 'PLACEHOLDER_BECOME_PASSWORD'
+        replace: "{{ ansible_become_password }}"
+      delegate_to: localhost
+
+  vars:
+    app_path: "/opt/cloud1"
+
+  vars_files:
+    - vault.yml
+
+  roles:
+    - docker
+    - mariadb
+    - wordpress
+    - caddy
+
+  post_tasks:
+    - name: Build and start Docker containers
+      become: true
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_path }}"
+        build: always
+
+    - name: Ensure Docker containers are running
+      become: true
+      community.docker.docker_container_info:
+        name: "{{ item }}"
+      loop:
+        - mariadb
+        - wordpress
+        - caddy
+        - phpmyadmin
+      register: docker_containers_info
+
+    - name: Display Docker containers status
+      debug:
+        msg: "Container {{ item.container.Name }} is {{ item.container.State.Status }}"
+      loop: "{{ docker_containers_info.results }}"

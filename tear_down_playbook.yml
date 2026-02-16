@@ -1,0 +1,75 @@
+- hosts: servers
+  become: true
+  vars:
+    app_path: "/opt/cloud1"
+
+  tasks:
+    - name: Tear down Docker Compose project and remove images
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_path }}"
+        state: absent
+        remove_images: all
+
+    - name: Remove all Docker volumes
+      shell: docker volume prune -f
+      args:
+
+    - name: Delete application source files
+      file:
+        path: "{{ app_path }}"
+        state: absent
+
+    - name: Remove MariaDB, Docker, and Caddy packages
+      package:
+        name: 
+          - mariadb-server
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - caddy
+        state: absent
+        purge: yes
+
+    - name: Remove unused dependencies and clear cache
+      apt:
+        autoremove: yes
+        purge: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Find and remove Docker-related files in /home
+      find:
+        paths: "/home"
+        patterns: ".docker*"
+        recurse: yes
+      register: docker_files
+
+    - name: Find and remove ansible files in /home
+      find:
+        paths: "/home"
+        patterns: ".ansible*"
+        recurse: yes
+      register: docker_files
+
+    - name: Remove Docker-related files
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ docker_files.files }}"
+
+    - name: Remove Docker system files
+      shell: |
+        rm -rf /var/lib/docker
+        rm -rf /etc/docker
+        rm -rf /run/docker
+        rm -rf /usr/lib/docker
+        rm -rf /usr/bin/docker*
+        rm -rf /usr/local/bin/docker*
+        rm -rf /var/run/docker.sock
+      args:
+        # Removed unsupported parameter 'warn'
+        # warn: false
+
+    - name: Remove Docker group
+      group:
+        name: docker
+        state: absent

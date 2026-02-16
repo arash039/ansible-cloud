@@ -1,0 +1,111 @@
+- name: Ensure dependencies are installed
+  become: true
+  apt:
+    name:
+      - ca-certificates
+      - curl
+      - gnupg
+    update_cache: true
+
+- name: Download Docker GPG key
+  become: true
+  get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+
+- name: Add Docker repository
+  become: true
+  apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    filename: docker
+    update_cache: true
+
+- name: Update apt cache
+  become: true
+  apt:
+    update_cache: true
+
+- name: Install Docker components
+  become: true
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+
+- name: Configure Docker daemon
+  become: true
+  copy:
+    dest: /etc/docker/daemon.json
+    mode: "0644"
+    content: |
+      {
+        "dns": ["8.8.8.8", "1.1.1.1"],
+        "features": {
+          "buildkit": true
+        },
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      }
+  register: docker_daemon_config
+
+
+- name: Ensure Docker service is running
+  become: true
+  service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Add user to docker group
+  become: true
+  user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: true
+
+
+- name: Verify Docker installation
+  command: docker --version
+  register: docker_version
+  changed_when: false
+
+- name: Display Docker version
+  debug:
+    msg: "Docker version: {{ docker_version.stdout }}"
+
+- name: Verify Docker Compose installation
+  command: docker compose version
+  register: docker_compose_version
+  changed_when: false
+
+- name: Display Docker Compose version
+  debug:
+    msg: "Docker Compose version: {{ docker_compose_version.stdout }}"
+
+- name: Clean up APT cache
+  become: true
+  apt:
+    autoclean: true
+    autoremove: true
+
+- name: Copy docker-compose.yml file
+  become: true
+  copy:
+    src: "."
+    dest: "{{ app_path }}/"
+    owner: "{{ ansible_user }}"
+    mode: "0644"
+
+- name: Deploy .env with secrets
+  template:
+    src: ".env.j2"
+    dest: "{{ app_path }}/.env"
+    mode: '0600'
+

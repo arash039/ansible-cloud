@@ -1,0 +1,23 @@
+{$DOMAIN_NAME}, www.{$DOMAIN_NAME} {
+	root * /var/www/wordpress
+	php_fastcgi wordpress:9000
+	file_server
+	encode gzip
+
+	handle {$PMA_ABSOLUTE_URI} {
+		redir {$PMA_ABSOLUTE_URI}/ 308
+	}
+
+	handle_path {$PMA_ABSOLUTE_URI}* {
+		reverse_proxy phpmyadmin:80
+	}
+
+	tls {
+        dns duckdns {$DUCKDNS_TOKEN}
+    }
+
+	log {
+		output stdout
+		format console
+	}
+}
